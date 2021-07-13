@@ -1,0 +1,51 @@
+SET(EXAMPLES_SRC_DIR ${ROOT_SRC_DIR}/examples)
+
+# Get all subdirectory names from EXAMPLES_SRC_DIR
+MACRO(SUBDIRLIST result curdir)
+  FILE(GLOB children RELATIVE ${curdir} ${curdir}/*)
+  SET(dirlist "")
+  FOREACH(child ${children})
+    IF(IS_DIRECTORY ${curdir}/${child})
+        LIST(APPEND dirlist ${child})
+    ENDIF()
+  ENDFOREACH()
+  SET(${result} ${dirlist})
+ENDMACRO()
+SUBDIRLIST(SUBDIRS ${EXAMPLES_SRC_DIR})
+
+SET(SCENE_LOADER_DIR "scene-loader")
+IF (NOT "${ENABLE_SCENE_LOADER}" )
+  IF ( ${SCENE_LOADER_DIR} IN_LIST SUBDIRS )
+    LIST( REMOVE_ITEM SUBDIRS ${SCENE_LOADER_DIR} )
+  ENDIF()
+ENDIF()
+
+FIND_PROGRAM( SHADER_GENERATOR "dali-shader-generator" )
+IF( NOT SHADER_GENERATOR )
+  MESSAGE( FATAL_ERROR "dali-shader-generator not found!" )
+ENDIF()
+
+FOREACH(EXAMPLE ${SUBDIRS})
+  SET(PARENT_CMAKE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../")
+  FILE(GLOB SRCS "${EXAMPLES_SRC_DIR}/${EXAMPLE}/*.cpp")
+  SET(SRCS ${SRCS} "${ROOT_SRC_DIR}/shared/resources-location.cpp")
+  IF(SHARED)
+    ADD_LIBRARY(${EXAMPLE}.example SHARED ${SRCS})
+  ELSE()
+    ADD_EXECUTABLE(${EXAMPLE}.example ${SRCS})
+  ENDIF()
+
+  # Generate source files for shaders
+  SET(SHADER_SOURCE_DIR "${EXAMPLES_SRC_DIR}/${EXAMPLE}/shaders/")
+  IF (EXISTS ${SHADER_SOURCE_DIR})
+    SET(SHADER_GENERATED_DIR "${EXAMPLES_SRC_DIR}/${EXAMPLE}/generated/")
+    ADD_CUSTOM_TARGET(${EXAMPLE}-generate-shaders
+                      COMMAND ${SHADER_GENERATOR} --skip ${SHADER_SOURCE_DIR} ${SHADER_GENERATED_DIR})
+    SET_PROPERTY(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES
+                 "${SHADER_GENERATED_DIR}")
+    ADD_DEPENDENCIES(${EXAMPLE}.example ${EXAMPLE}-generate-shaders)
+  ENDIF()
+
+  TARGET_LINK_LIBRARIES(${EXAMPLE}.example ${REQUIRED_LIBS})
+  INSTALL(TARGETS ${EXAMPLE}.example DESTINATION ${BINDIR})
+ENDFOREACH(EXAMPLE)
