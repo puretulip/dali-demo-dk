@@ -204,7 +204,9 @@ MESSAGE("Installed style resources ${LOCAL_STYLE_IMAGES_LIST} to ${STYLE_DIR}/im
 IF( ENABLE_PKG_CONFIGURE )
   SET(PKG_LIST dali2-core
                dali2-adaptor
-               dali2-toolkit)
+               dali2-toolkit
+               dlog
+               glesv2)
 
   INCLUDE(FindPkgConfig)
   pkg_check_modules(REQUIRED_PKGS REQUIRED ${PKG_LIST})
