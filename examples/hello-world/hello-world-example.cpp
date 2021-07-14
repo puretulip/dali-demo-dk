@@ -17,6 +17,7 @@
 
 #include <GLES2/gl2.h>
 #include <dali-toolkit/dali-toolkit.h>
+#include <dali-toolkit/devel-api/controls/table-view/table-view.h>
 #include <dali-toolkit/public-api/controls/gl-view/gl-view.h>
 #include <dali/devel-api/common/stage.h>
 #include <dali/devel-api/events/touch-point.h>
@@ -26,6 +27,7 @@
 
 using namespace Dali;
 using Dali::Toolkit::GlView;
+using Dali::Toolkit::TableView;
 
 class HelloWorldController : public ConnectionTracker
 {
@@ -54,11 +56,20 @@ public:
 
     window.Show();
 
-    mGlView = GlView::New(true);
-    mGlView.SetProperty(Actor::Property::ANCHOR_POINT, AnchorPoint::TOP_LEFT);
-    mGlView.SetResizePolicy(Dali::ResizePolicy::FILL_TO_PARENT, Dali::Dimension::ALL_DIMENSIONS);
-    mGlView.SetProperty(Actor::Property::SIZE, Vector2(360.0f, 360.0f));
+    TableView page = TableView::New(1, 2);
+    page.SetProperty(Actor::Property::ANCHOR_POINT, AnchorPoint::CENTER);
+    page.SetProperty(Actor::Property::PARENT_ORIGIN, ParentOrigin::CENTER);
+    page.SetResizePolicy(ResizePolicy::FILL_TO_PARENT, Dimension::ALL_DIMENSIONS);
 
+    window.Add(page);
+
+    mGlView = GlView::New(true);
+    // mGlView.SetProperty(Actor::Property::ANCHOR_POINT, AnchorPoint::TOP_LEFT);
+    mGlView.SetResizePolicy(Dali::ResizePolicy::FILL_TO_PARENT, Dali::Dimension::ALL_DIMENSIONS);
+    // mGlView.SetProperty(Actor::Property::SIZE, Vector2(360.0f, 360.0f));
+
+    mGlView.SetProperty(Actor::Property::ANCHOR_POINT, AnchorPoint::CENTER);
+    mGlView.SetProperty(Actor::Property::PARENT_ORIGIN, ParentOrigin::CENTER);
     mGlView.SetRenderingMode(GlView::RenderingMode::CONTINUOUS);
     // mGlView.SetRenderingMode(GlView::RenderingMode::ON_DEMAND);
 
@@ -72,14 +83,36 @@ public:
     {
       printf("choose error\n");
     }
-
     mGlView.SetResizeCallback(Dali::MakeCallback(this, &HelloWorldController::OnResize));
 
     // Respond to a touch anywhere on the window
     // window.GetRootLayer().TouchedSignal().Connect(this, &HelloWorldController::OnTouch);
     // window.KeyEventSignal().Connect(this, &HelloWorldController::OnKeyEvent);
 
-    window.Add(mGlView);
+    // window.Add(mGlView);
+    page.AddChild(mGlView, TableView::CellPosition(0, 0));
+
+    mGlView2 = GlView::New(true);
+    // mGlView2.SetProperty(Actor::Property::ANCHOR_POINT, AnchorPoint::BOTTOM_RIGHT);
+    // mGlView2.SetProperty(Actor::Property::ANCHOR_POINT, AnchorPoint::TOP_RIGHT);
+    mGlView2.SetProperty(Actor::Property::ANCHOR_POINT, AnchorPoint::CENTER);
+    mGlView2.SetProperty(Actor::Property::PARENT_ORIGIN, ParentOrigin::CENTER);
+
+    mGlView2.SetResizePolicy(Dali::ResizePolicy::FILL_TO_PARENT, Dali::Dimension::ALL_DIMENSIONS);
+    // mGlView2.SetProperty(Actor::Property::SIZE, Vector2(200.0f, 200.0f));
+
+    mGlView2.SetRenderingMode(GlView::RenderingMode::CONTINUOUS);
+
+    mGlView2.RegisterGlCallback(Dali::MakeCallback(this, &HelloWorldController::initialize_gl2),
+                                Dali::MakeCallback(this, &HelloWorldController::renderFrame_gl2),
+                                Dali::MakeCallback(this, &HelloWorldController::terminate_gl));
+
+    mGlView2.SetEglConfig(true, true, 0, GlView::GlesVersion::VERSION_2_0);
+
+    mGlView2.SetResizeCallback(Dali::MakeCallback(this, &HelloWorldController::OnResize2));
+
+    // window.Add(mGlView2);
+    page.AddChild(mGlView2, TableView::CellPosition(0, 1));
   }
 
   GLuint LoadShader(GLenum type, const char* shaderSrc)
@@ -190,7 +223,7 @@ public:
 
   int renderFrame_gl()
   {
-    glClearColor(mClearColor, mClearColor, mClearColor, 0.0f);
+    glClearColor(mClearColor, mClearColor, mClearColor, 1.0f);
 
     if(mClearColor < 0)
     {
@@ -221,12 +254,111 @@ public:
     fprintf(stderr, "%s\n", __FUNCTION__);
   }
 
+  void initialize_gl2()
+  {
+    fprintf(stderr, "%s\n", __FUNCTION__);
+    char vShaderStr[] =
+      "attribute vec4 vPosition;  \n"
+      "void main()\n"
+      "{\n"
+      "     gl_Position = vPosition;\n"
+      "}\n";
+
+    char fShaderStr[] =
+      "void main()\n"
+      "{\n"
+      "    gl_FragColor = vec4 (1.0, 0.0, 0.0, 1.0);\n"
+      "}\n";
+
+    GLuint vertexShader;
+    GLuint fragmentShader;
+    GLuint programObject;
+    GLint  linked;
+
+    vertexShader   = LoadShader(GL_VERTEX_SHADER, vShaderStr);
+    fragmentShader = LoadShader(GL_FRAGMENT_SHADER, fShaderStr);
+
+    programObject = glCreateProgram();
+
+    if(programObject == 0)
+    {
+      printf("programObject error\n");
+      return;
+    }
+
+    glAttachShader(programObject, vertexShader);
+    glAttachShader(programObject, fragmentShader);
+
+    glLinkProgram(programObject);
+
+    glGetProgramiv(programObject, GL_LINK_STATUS, &linked);
+
+    if(!linked)
+    {
+      GLint infoLen = 0;
+      glGetProgramiv(programObject, GL_INFO_LOG_LENGTH, &infoLen);
+
+      if(infoLen > 1)
+      {
+        char* infoLog = (char*)malloc(sizeof(char) * infoLen);
+
+        glGetProgramInfoLog(programObject, infoLen, NULL, infoLog);
+        printf("error linking program:\n%s\n", infoLog);
+
+        free(infoLog);
+      }
+
+      glDeleteProgram(programObject);
+      return;
+    }
+
+    mProgramObject2 = programObject;
+
+    glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
+  }
+
+  int renderFrame_gl2()
+  {
+    glClearColor(mClearColor2, mClearColor2, mClearColor2, 1.0f);
+
+    if(mClearColor2 < 0)
+    {
+      mClearColor2 = 1.0f;
+    }
+    else
+    {
+      mClearColor2 -= 0.01f;
+    }
+    GLfloat vVertices[] = {0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f};
+    glViewport(0, 0, mGlViewWidth2, mGlViewHeight2);
+
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(mProgramObject2);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
+
+    glEnableVertexAttribArray(0);
+
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    return 1;
+  }
+
   void OnResize(int width, int height)
   {
     std::cout << "OnResize " << width << " " << height << std::endl;
 
     mGlViewWidth  = width;
     mGlViewHeight = height;
+  }
+
+  void OnResize2(int width, int height)
+  {
+    std::cout << "OnResize2 " << width << " " << height << std::endl;
+
+    mGlViewWidth2  = width;
+    mGlViewHeight2 = height;
   }
 
   bool OnTouch(Actor actor, const TouchEvent& touch)
@@ -257,12 +389,18 @@ private:
   Application& mApplication;
   Timer        mTimer;
   GlView       mGlView;
+  GlView       mGlView2;
   int          mNumTouched;
 
   unsigned int mProgramObject;
   int          mGlViewWidth;
   int          mGlViewHeight;
   float        mClearColor;
+
+  unsigned int mProgramObject2;
+  int          mGlViewWidth2;
+  int          mGlViewHeight2;
+  float        mClearColor2;
 
   bool mGlViewInitialized;
 };
