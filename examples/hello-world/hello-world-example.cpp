@@ -92,27 +92,17 @@ public:
     // window.Add(mGlView);
     page.AddChild(mGlView, TableView::CellPosition(0, 0));
 
-    mGlView2 = GlView::New(true);
-    // mGlView2.SetProperty(Actor::Property::ANCHOR_POINT, AnchorPoint::BOTTOM_RIGHT);
-    // mGlView2.SetProperty(Actor::Property::ANCHOR_POINT, AnchorPoint::TOP_RIGHT);
-    mGlView2.SetProperty(Actor::Property::ANCHOR_POINT, AnchorPoint::CENTER);
-    mGlView2.SetProperty(Actor::Property::PARENT_ORIGIN, ParentOrigin::CENTER);
-
-    mGlView2.SetResizePolicy(Dali::ResizePolicy::FILL_TO_PARENT, Dali::Dimension::ALL_DIMENSIONS);
-    // mGlView2.SetProperty(Actor::Property::SIZE, Vector2(200.0f, 200.0f));
-
-    mGlView2.SetRenderingMode(GlView::RenderingMode::CONTINUOUS);
-
-    mGlView2.RegisterGlCallback(Dali::MakeCallback(this, &HelloWorldController::initialize_gl2),
-                                Dali::MakeCallback(this, &HelloWorldController::renderFrame_gl2),
-                                Dali::MakeCallback(this, &HelloWorldController::terminate_gl));
-
-    mGlView2.SetEglConfig(true, true, 0, GlView::GlesVersion::VERSION_2_0);
-
-    mGlView2.SetResizeCallback(Dali::MakeCallback(this, &HelloWorldController::OnResize2));
-
-    // window.Add(mGlView2);
-    page.AddChild(mGlView2, TableView::CellPosition(0, 1));
+    Toolkit::PushButton button = Toolkit::PushButton::New();
+    button.SetProperty(Toolkit::Button::Property::LABEL, "on/off");
+    button.SetProperty(Actor::Property::PARENT_ORIGIN, ParentOrigin::TOP_CENTER);
+    button.SetProperty(Actor::Property::ANCHOR_POINT, AnchorPoint::TOP_CENTER);
+    // button.ClickedSignal().Connect(this, &ImageViewController::ToggleImageOnWindow);
+    // button.SetResizePolicy(ResizePolicy::FILL_TO_PARENT, Dimension::WIDTH);
+    // button.SetResizePolicy(ResizePolicy::USE_NATURAL_SIZE, Dimension::HEIGHT);
+    button.SetResizePolicy(Dali::ResizePolicy::FILL_TO_PARENT, Dali::Dimension::ALL_DIMENSIONS);
+    // std::string s = std::to_string(x);
+    // button.SetProperty(Dali::Actor::Property::NAME, s);
+    page.AddChild(button, Toolkit::TableView::CellPosition(0, 1));
   }
 
   GLuint LoadShader(GLenum type, const char* shaderSrc)
@@ -319,7 +309,7 @@ public:
 
   int renderFrame_gl2()
   {
-    glClearColor(mClearColor2, mClearColor2, mClearColor2, 1.0f);
+    glClearColor(mClearColor2, mClearColor2, mClearColor2, 0.3f);
 
     if(mClearColor2 < 0)
     {
